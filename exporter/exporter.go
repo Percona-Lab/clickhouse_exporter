@@ -26,6 +26,7 @@ type Exporter struct {
 	asyncMetricsURI string
 	eventsURI       string
 	partsURI        string
+	dictionariesURI string
 	client          *http.Client
 
 	scrapeFailures prometheus.Counter
@@ -52,12 +53,17 @@ func NewExporter(uri url.URL, insecure bool, user, password string) *Exporter {
 	partsURI := uri
 	q.Set("query", "select database, table, sum(bytes) as bytes, count() as parts, sum(rows) as rows from system.parts where active = 1 group by database, table")
 	partsURI.RawQuery = q.Encode()
-	
+
+	dictionariesURI := uri
+	q.Set("query", "select name, bytes_allocated, element_count, load_factor from system.dictionaries")
+	dictionariesURI.RawQuery = q.Encode()
+
 	return &Exporter{
 		metricsURI:      metricsURI.String(),
 		asyncMetricsURI: asyncMetricsURI.String(),
 		eventsURI:       eventsURI.String(),
 		partsURI:        partsURI.String(),
+		dictionariesURI: dictionariesURI.String(),
 		scrapeFailures: prometheus.NewCounter(prometheus.CounterOpts{
 			Namespace: namespace,
 			Name:      "exporter_scrape_failures_total",
@@ -172,6 +178,37 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) error {
 		newRowsMetric.Collect(ch)
 	}
 
+	dictionaries, err := e.parseDictionariesResponse(e.dictionariesURI)
+	if err != nil {
+		return fmt.Errorf("Error scraping clickhouse url %v: %v", e.dictionariesURI, err)
+	}
+
+	for _, dictionary := range dictionaries {
+		newBytesMetric := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "dictionary_allocated_bytes",
+			Help:      "Dictionary size in bytes",
+		}, []string{"name"}).WithLabelValues(dictionary.name)
+		newBytesMetric.Set(float64(dictionary.bytes))
+		newBytesMetric.Collect(ch)
+
+		newCountMetric := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "dictionary_element_count",
+			Help:      "Number of items stored in dictionary",
+		}, []string{"name"}).WithLabelValues(dictionary.name)
+		newCountMetric.Set(float64(dictionary.count))
+		newCountMetric.Collect(ch)
+
+		newLoadMetric := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "dictionary_load_factor",
+			Help:      "Dictionary filled percentage (value range: 0.0 - 1.0)",
+		}, []string{"name"}).WithLabelValues(dictionary.name)
+		newLoadMetric.Set(float64(dictionary.load))
+		newLoadMetric.Collect(ch)
+	}
+
 	return nil
 }
 
@@ -197,7 +234,7 @@ func (e *Exporter) handleResponse(uri string) ([]byte, error) {
 		}
 		return nil, fmt.Errorf("Status %s (%d): %s", resp.Status, resp.StatusCode, data)
 	}
-	
+
 	return data, nil
 }
 
@@ -280,6 +317,54 @@ func (e *Exporter) parsePartsResponse(uri string) ([]partsResult, error) {
 		}
 
 		results = append(results, partsResult{database, table, bytes, count, rows})
+	}
+
+	return results, nil
+}
+
+type dictionariesResult struct {
+	name  string
+	bytes int
+	count int
+	load  float64
+}
+
+func (e *Exporter) parseDictionariesResponse(uri string) ([]dictionariesResult, error) {
+	data, err := e.handleResponse(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parsing results
+	lines := strings.Split(string(data), "\n")
+	var results []dictionariesResult = make([]dictionariesResult, 0)
+
+	for i, line := range lines {
+		dictionaries := strings.Fields(line)
+		if len(dictionaries) == 0 {
+			continue
+		}
+		if len(dictionaries) != 4 {
+			return nil, fmt.Errorf("parseDictionariesResponse: unexpected %d lines: %s", i, line)
+		}
+		name := strings.TrimSpace(dictionaries[0])
+
+		bytes, err := strconv.Atoi(strings.TrimSpace(dictionaries[1]))
+		if err != nil {
+			return nil, err
+		}
+
+		count, err := strconv.Atoi(strings.TrimSpace(dictionaries[2]))
+		if err != nil {
+			return nil, err
+		}
+
+		load, err := strconv.ParseFloat(strings.TrimSpace(dictionaries[3]), 64)
+		if err != nil {
+			return nil, err
+		}
+
+		results = append(results, dictionariesResult{name, bytes, count, load})
 	}
 
 	return results, nil
