@@ -108,7 +108,7 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) error {
 			Name:      metricName(m.key),
 			Help:      "Number of " + m.key + " currently processed",
 		}, []string{}).WithLabelValues()
-		newMetric.Set(float64(m.value))
+		newMetric.Set(m.value)
 		newMetric.Collect(ch)
 	}
 
@@ -123,7 +123,7 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) error {
 			Name:      metricName(am.key),
 			Help:      "Number of " + am.key + " async processed",
 		}, []string{}).WithLabelValues()
-		newMetric.Set(float64(am.value))
+		newMetric.Set(am.value)
 		newMetric.Collect(ch)
 	}
 
@@ -137,7 +137,7 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) error {
 			prometheus.NewDesc(
 				namespace+"_"+metricName(ev.key)+"_total",
 				"Number of "+ev.key+" total processed", []string{}, nil),
-			prometheus.CounterValue, float64(ev.value))
+			prometheus.CounterValue, ev.value)
 		ch <- newMetric
 	}
 
@@ -203,7 +203,7 @@ func (e *Exporter) handleResponse(uri string) ([]byte, error) {
 
 type lineResult struct {
 	key   string
-	value int
+	value float64
 }
 
 func (e *Exporter) parseKeyValueResponse(uri string) ([]lineResult, error) {
@@ -225,7 +225,7 @@ func (e *Exporter) parseKeyValueResponse(uri string) ([]lineResult, error) {
 			return nil, fmt.Errorf("parseKeyValueResponse: unexpected %d line: %s", i, line)
 		}
 		k := strings.TrimSpace(parts[0])
-		v, err := strconv.Atoi(strings.TrimSpace(parts[1]))
+		v, err := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
 		if err != nil {
 			return nil, err
 		}
