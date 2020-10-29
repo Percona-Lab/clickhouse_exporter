@@ -12,7 +12,7 @@ import (
 	"unicode"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/log"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
