@@ -1,4 +1,4 @@
-package exporter // import "github.com/Percona-Lab/clickhouse_exporter/exporter"
+package exporter
 
 import (
 	"crypto/tls"
@@ -12,7 +12,7 @@ import (
 	"unicode"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/log"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -203,7 +203,7 @@ func (e *Exporter) handleResponse(uri string) ([]byte, error) {
 
 type lineResult struct {
 	key   string
-	value int
+	value float64
 }
 
 func (e *Exporter) parseKeyValueResponse(uri string) ([]lineResult, error) {
@@ -225,7 +225,7 @@ func (e *Exporter) parseKeyValueResponse(uri string) ([]lineResult, error) {
 			return nil, fmt.Errorf("parseKeyValueResponse: unexpected %d line: %s", i, line)
 		}
 		k := strings.TrimSpace(parts[0])
-		v, err := strconv.Atoi(strings.TrimSpace(parts[1]))
+		v, err := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
 		if err != nil {
 			return nil, err
 		}
