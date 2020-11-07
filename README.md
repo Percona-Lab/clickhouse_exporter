@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/Percona-Lab/clickhouse_exporter.svg?branch=master)](https://travis-ci.org/Percona-Lab/clickhouse_exporter)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Percona-Lab/clickhouse_exporter)](https://goreportcard.com/report/github.com/Percona-Lab/clickhouse_exporter)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FPercona-Lab%2Fclickhouse_exporter.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FPercona-Lab%2Fclickhouse_exporter?ref=badge_shield)
 
 This is a simple server that periodically scrapes ClickHouse(https://clickhouse.yandex/) stats and exports them via HTTP for Prometheus(https://prometheus.io/)
 consumption.
@@ -32,3 +33,7 @@ docker run -d -p 9116:9116 Percona-Lab/clickhouse-exporter -scrape_uri=http://cl
 ```
 ## Sample dashboard
 Grafana dashboard could be a start for inspiration https://grafana.net/dashboards/882
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FPercona-Lab%2Fclickhouse_exporter.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FPercona-Lab%2Fclickhouse_exporter?ref=badge_large)
