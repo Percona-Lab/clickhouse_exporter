@@ -12,6 +12,8 @@ FROM frolvlad/alpine-glibc:alpine-3.8
 
 COPY --from=BUILD /go/bin/clickhouse_exporter /usr/local/bin/clickhouse_exporter
 
+ENV LISTEN_PORT=9116
+
 ENTRYPOINT ["/usr/local/bin/clickhouse_exporter"]
 
 CMD ["-scrape_uri=http://localhost:8123"]
