@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	listeningAddress    = flag.String("telemetry.address", ":9116", "Address on which to expose metrics.")
+	listeningAddress    = os.Getenv("LISTEN_PORT")
 	metricsEndpoint     = flag.String("telemetry.endpoint", "/metrics", "Path under which to expose metrics.")
 	clickhouseScrapeURI = flag.String("scrape_uri", "http://localhost:8123/", "URI to clickhouse http endpoint")
 	insecure            = flag.Bool("insecure", true, "Ignore server certificate if using https")
